@@ -1,30 +1,146 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:nasci_lugar_errado/main.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path/path.dart' hide equals;
+import 'package:sqflite/sqflite.dart';
+import 'package:nasci_lugar_errado/data/database_helper.dart';
+import 'package:nasci_lugar_errado/data/dao/usuario_dao.dart';
+import 'package:nasci_lugar_errado/data/dao/vida_dao.dart';
+import 'package:nasci_lugar_errado/data/models/usuario_model.dart';
+import 'package:nasci_lugar_errado/data/models/vida_alternativa_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  // Roda uma vez antes de todos os testes
+  setUpAll(() {
+    sqfliteFfiInit();
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  // Roda antes de cada teste individual
+  setUp(() async {
+    // Usa banco em memória — não salva nada no disco
+    databaseFactory = databaseFactoryFfi;
+    final dbHelper = DatabaseHelper();
+    await dbHelper.database;
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('Deve inserir e buscar um usuário', () async {
+    final dao = UsuarioDao();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Cria um usuário de teste
+    final usuario = UsuarioModel(
+      dataNascimento: '1999-07-14',
+      paisOrigemCode: 'BR',
+      paisOrigemNome: 'Brasil',
+    );
+
+    // Insere no banco e pega o id gerado
+    final id = await dao.insert(usuario);
+
+    // Verifica que o id foi gerado (maior que 0)
+    expect(id, greaterThan(0));
+
+    // Busca pelo id e verifica os dados
+    final encontrado = await dao.getById(id);
+    expect(encontrado, isNotNull);
+    expect(encontrado!.paisOrigemCode, equals('BR'));
+    expect(encontrado.dataNascimento, equals('1999-07-14'));
+
+    print('✅ Usuário inserido com id: $id');
+  });
+
+  test('Deve inserir e buscar uma vida alternativa', () async {
+    final usuarioDao = UsuarioDao();
+    final vidaDao = VidaDao();
+
+    // Primeiro cria um usuário (necessário por causa do FOREIGN KEY)
+    final usuarioId = await usuarioDao.insert(
+      UsuarioModel(
+        dataNascimento: '1999-07-14',
+        paisOrigemCode: 'BR',
+        paisOrigemNome: 'Brasil',
+      ),
+    );
+
+    // Cria uma vida alternativa vinculada ao usuário
+    final vida = VidaAlternativaModel(
+      usuarioId: usuarioId,
+      paisCode: 'JP',
+      paisNome: 'Japão',
+      capital: 'Tóquio',
+      idioma: 'Japonês',
+      expectativaVida: 84.3,
+      moeda: 'Yen (JPY)',
+    );
+
+    final vidaId = await vidaDao.insert(vida);
+    expect(vidaId, greaterThan(0));
+
+    // Busca todas as vidas do usuário
+    final vidas = await vidaDao.getAll(usuarioId);
+    expect(vidas.length, equals(1));
+    expect(vidas.first.paisCode, equals('JP'));
+    expect(vidas.first.expectativaVida, equals(84.3));
+
+    print('✅ Vida alternativa inserida com id: $vidaId');
+  });
+
+  test('Deve deletar uma vida alternativa', () async {
+    final usuarioDao = UsuarioDao();
+    final vidaDao = VidaDao();
+
+    final usuarioId = await usuarioDao.insert(
+      UsuarioModel(
+        dataNascimento: '2000-01-01',
+        paisOrigemCode: 'BR',
+        paisOrigemNome: 'Brasil',
+      ),
+    );
+
+    final vidaId = await vidaDao.insert(
+      VidaAlternativaModel(
+        usuarioId: usuarioId,
+        paisCode: 'FR',
+        paisNome: 'França',
+      ),
+    );
+
+    // Deleta e verifica que sumiu
+    await vidaDao.deleteById(vidaId);
+    final vidas = await vidaDao.getAll(usuarioId);
+    expect(vidas.isEmpty, isTrue);
+
+    print('✅ Vida deletada com sucesso');
+  });
+
+  test('Deve favoritar e desfavoritar uma vida', () async {
+    final usuarioDao = UsuarioDao();
+    final vidaDao = VidaDao();
+
+    final usuarioId = await usuarioDao.insert(
+      UsuarioModel(
+        dataNascimento: '1995-03-20',
+        paisOrigemCode: 'BR',
+        paisOrigemNome: 'Brasil',
+      ),
+    );
+
+    final vidaId = await vidaDao.insert(
+      VidaAlternativaModel(
+        usuarioId: usuarioId,
+        paisCode: 'IS',
+        paisNome: 'Islândia',
+      ),
+    );
+
+    // Favorita
+    await vidaDao.toggleFavorita(vidaId, true);
+    var vidas = await vidaDao.getAll(usuarioId);
+    expect(vidas.first.favorita, equals(1));
+    print('✅ Vida favoritada');
+
+    // Desfavorita
+    await vidaDao.toggleFavorita(vidaId, false);
+    vidas = await vidaDao.getAll(usuarioId);
+    expect(vidas.first.favorita, equals(0));
+    print('✅ Vida desfavoritada');
   });
 }
