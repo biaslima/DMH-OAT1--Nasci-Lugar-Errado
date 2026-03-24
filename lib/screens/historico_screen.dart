@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:nasci_lugar_errado/data/models/usuario_model.dart';
 import 'package:provider/provider.dart';
 import 'package:nasci_lugar_errado/providers/vida_provider.dart';
 import 'package:nasci_lugar_errado/widgets/vida_card.dart';
 import 'package:nasci_lugar_errado/widgets/app_error_widget.dart';
 
 class HistoricoScreen extends StatefulWidget {
-  final int usuarioId;
+  final UsuarioModel usuario;
 
-  const HistoricoScreen({super.key, required this.usuarioId});
+  const HistoricoScreen({super.key, required this.usuario});
 
   @override
   State<HistoricoScreen> createState() => _HistoricoScreenState();
@@ -18,7 +19,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VidaProvider>().carregarHistorico(widget.usuarioId);
+      context.read<VidaProvider>().carregarHistorico(widget.usuario.id!);
     });
   }
 
@@ -42,7 +43,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 tooltip: 'Ordenar',
                 icon: Icon(Icons.sort_rounded, color: colorScheme.primary),
                 onSelected: (ordem) =>
-                    provider.alterarOrdem(ordem, widget.usuarioId),
+                    provider.alterarOrdem(ordem, widget.usuario.id!),
                 itemBuilder: (_) => const [
                   PopupMenuItem(
                     value: OrdemHistorico.maisRecente,
@@ -79,7 +80,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           if (provider.error != null) {
             return AppErrorWidget(
               mensagem: provider.error!,
-              onRetry: () => provider.carregarHistorico(widget.usuarioId),
+              onRetry: () => provider.carregarHistorico(widget.usuario.id!),
             );
           }
 
@@ -88,7 +89,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () => provider.carregarHistorico(widget.usuarioId),
+            onRefresh: () => provider.carregarHistorico(widget.usuario.id!),
             child: ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 32),
               itemCount: provider.listaVidas.length,
@@ -101,7 +102,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   background: _DismissBackground(),
                   confirmDismiss: (_) => _confirmarDelecao(context),
                   onDismissed: (_) {
-                    provider.deletarVida(vida.id!, widget.usuarioId);
+                    provider.deletarVida(vida.id!, widget.usuario.id!);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('${vida.paisNome} removida do histórico'),
@@ -116,7 +117,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     onFavoritaTap: () => provider.toggleFavorita(
                       vida.id!,
                       vida.favorita == 0,
-                      widget.usuarioId,
+                      widget.usuario.id!,
                     ),
                   ),
                 );

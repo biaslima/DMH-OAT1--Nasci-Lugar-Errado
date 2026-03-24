@@ -8,6 +8,7 @@ import 'providers/usuario_provider.dart';
 import 'providers/vida_provider.dart';
 import 'screens/entrada_screen.dart';
 import 'screens/sorteio_screen.dart';
+import 'screens/historico_screen.dart';
 
 
 void main() {
@@ -38,13 +39,14 @@ final _router = GoRouter(
         );
       },
     ),
-   /* GoRoute(
+
+    GoRoute(
       path: '/historico',
       builder: (_, state) {
         final usuario = state.extra as UsuarioModel;
         return HistoricoScreen(usuario: usuario);
       },
-    ),*/
+    ),
   ],
 );
 
