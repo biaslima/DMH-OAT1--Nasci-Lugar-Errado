@@ -61,4 +61,6 @@ class VidaAlternativaModel {
         salvoEm: map['salvo_em'],
         favorita: map['favorita'] ?? 0,
       );
+
+  VidaAlternativaModel? copyWith({required int id}) {}
 }
