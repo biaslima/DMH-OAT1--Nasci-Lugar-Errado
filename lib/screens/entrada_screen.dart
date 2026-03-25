@@ -43,6 +43,12 @@ class _EntradaScreenState extends State<EntradaScreen>
   late Animation<double> _buttonScale;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
+  // Animação para os campos aparecerem com stagger
+  late AnimationController _staggerController;
+  late Animation<double> _headerAnim;
+  late Animation<double> _field1Anim;
+  late Animation<double> _field2Anim;
+  late Animation<double> _buttonAnim;
 
   final _searchController = TextEditingController();
 
@@ -64,12 +70,36 @@ class _EntradaScreenState extends State<EntradaScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+
+    // Stagger de entrada dos elementos
+    _staggerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _headerAnim = CurvedAnimation(
+      parent: _staggerController,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+    );
+    _field1Anim = CurvedAnimation(
+      parent: _staggerController,
+      curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+    );
+    _field2Anim = CurvedAnimation(
+      parent: _staggerController,
+      curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+    );
+    _buttonAnim = CurvedAnimation(
+      parent: _staggerController,
+      curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+    );
+    _staggerController.forward();
   }
 
   @override
   void dispose() {
     _buttonController.dispose();
     _fadeController.dispose();
+    _staggerController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -113,21 +143,7 @@ class _EntradaScreenState extends State<EntradaScreen>
         );
       },
     );
-    if (picked != null) {
-      setState(() => _dataNascimento = picked);
-    }
-  }
-
-  void _filtrarPaises(String query) {
-    setState(() {
-      _paisesFiltrados = _paises
-          .where(
-            (p) =>
-                p.nome.toLowerCase().contains(query.toLowerCase()) ||
-                p.code.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-    });
+    if (picked != null) setState(() => _dataNascimento = picked);
   }
 
   Future<void> _abrirDropdownPaises() async {
@@ -149,6 +165,7 @@ class _EntradaScreenState extends State<EntradaScreen>
             child: Column(
               children: [
                 const SizedBox(height: 12),
+                // Handle visual
                 Container(
                   width: 40,
                   height: 4,
@@ -175,7 +192,7 @@ class _EntradaScreenState extends State<EntradaScreen>
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Buscar país...',
-                      hintStyle: TextStyle(color: Colors.white38),
+                      hintStyle: const TextStyle(color: Colors.white38),
                       prefixIcon: const Icon(
                         Icons.search,
                         color: Colors.white38,
@@ -246,9 +263,7 @@ class _EntradaScreenState extends State<EntradaScreen>
       ),
     );
 
-    if (result != null) {
-      setState(() => _paisSelecionado = result);
-    }
+    if (result != null) setState(() => _paisSelecionado = result);
   }
 
   bool get _formularioValido =>
@@ -276,6 +291,10 @@ class _EntradaScreenState extends State<EntradaScreen>
         SnackBar(
           content: Text(provider.error ?? 'Erro ao salvar dados.'),
           backgroundColor: Colors.red[700],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -293,120 +312,129 @@ class _EntradaScreenState extends State<EntradaScreen>
           ),
         ),
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnim,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Cabeçalho
-                  const Text('🌍', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Você nasceu no lugar errado?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Descubra como seria sua vida em outro país.',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-
-                  // Campo: Data de nascimento
-                  _Label('Quando você nasceu?'),
-                  const SizedBox(height: 8),
-                  _CampoToque(
-                    onTap: _selecionarData,
-                    erro: _formSubmetido && _dataNascimento == null
-                        ? 'Informe sua data de nascimento'
-                        : null,
-                    child: Row(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Cabeçalho animado ──────────────────────────────────────
+                FadeTransition(
+                  opacity: _headerAnim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.15),
+                      end: Offset.zero,
+                    ).animate(_headerAnim),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.cake_outlined,
-                          color: Color(0xFF7C5CFC),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _dataNascimento != null
-                              ? DateFormat(
-                                  'dd/MM/yyyy',
-                                ).format(_dataNascimento!)
-                              : 'Selecionar data',
-                          style: TextStyle(
-                            color: _dataNascimento != null
-                                ? Colors.white
-                                : Colors.white38,
-                            fontSize: 16,
+                        // Badge superior
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7C5CFC).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF7C5CFC).withOpacity(0.4),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('✨', style: TextStyle(fontSize: 12)),
+                              SizedBox(width: 6),
+                              Text(
+                                'Vida Alternativa',
+                                style: TextStyle(
+                                  color: Color(0xFF9E86FF),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const Spacer(),
-                        const Icon(Icons.chevron_right, color: Colors.white38),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Você nasceu no\nlugar certo?',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Descubra como seria sua vida em outro país.',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.55),
+                            fontSize: 16,
+                            height: 1.4,
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 40),
 
-                  // Campo: País de origem
-                  _Label('Qual é o seu país de origem?'),
-                  const SizedBox(height: 8),
-                  _loadingPaises
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF7C5CFC),
-                          ),
-                        )
-                      : _CampoToque(
-                          onTap: _abrirDropdownPaises,
-                          erro: _formSubmetido && _paisSelecionado == null
-                              ? 'Selecione seu país de origem'
+                // ── Campo: Data de nascimento ──────────────────────────────
+                FadeTransition(
+                  opacity: _field1Anim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.1),
+                      end: Offset.zero,
+                    ).animate(_field1Anim),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _Label('Quando você nasceu?'),
+                        const SizedBox(height: 8),
+                        _CampoToque(
+                          onTap: _selecionarData,
+                          erro: _formSubmetido && _dataNascimento == null
+                              ? 'Informe sua data de nascimento'
                               : null,
+                          preenchido: _dataNascimento != null,
                           child: Row(
                             children: [
-                              if (_paisSelecionado != null) ...[
-                                Text(
-                                  _paisSelecionado!.bandeira,
-                                  style: const TextStyle(fontSize: 22),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF7C5CFC,
+                                  ).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    _paisSelecionado!.nome,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ] else ...[
-                                const Icon(
-                                  Icons.public_outlined,
+                                child: const Icon(
+                                  Icons.cake_outlined,
                                   color: Color(0xFF7C5CFC),
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Selecionar país',
-                                  style: TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 16,
-                                  ),
+                              ),
+                              const SizedBox(width: 14),
+                              Text(
+                                _dataNascimento != null
+                                    ? DateFormat(
+                                        'dd/MM/yyyy',
+                                      ).format(_dataNascimento!)
+                                    : 'Selecionar data',
+                                style: TextStyle(
+                                  color: _dataNascimento != null
+                                      ? Colors.white
+                                      : Colors.white38,
+                                  fontSize: 16,
                                 ),
-                                const Spacer(),
-                              ],
+                              ),
+                              const Spacer(),
                               const Icon(
                                 Icons.chevron_right,
                                 color: Colors.white38,
@@ -414,63 +442,158 @@ class _EntradaScreenState extends State<EntradaScreen>
                             ],
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                  // Buscas recentes do SQLite
-                  _HistoricoRecente(),
-
-                  const SizedBox(height: 40),
-
-                  // Botão principal
-                  ScaleTransition(
-                    scale: _buttonScale,
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _descobrir,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C5CFC),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 8,
-                          shadowColor: const Color(0xFF7C5CFC).withOpacity(0.5),
-                        ),
-                        child: Consumer<UsuarioProvider>(
-                          builder: (_, prov, __) => prov.isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                // ── Campo: País de origem ──────────────────────────────────
+                FadeTransition(
+                  opacity: _field2Anim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.1),
+                      end: Offset.zero,
+                    ).animate(_field2Anim),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _Label('Qual é o seu país de origem?'),
+                        const SizedBox(height: 8),
+                        _loadingPaises
+                            ? _CampoLoadingPaises()
+                            : _CampoToque(
+                                onTap: _abrirDropdownPaises,
+                                erro: _formSubmetido && _paisSelecionado == null
+                                    ? 'Selecione seu país de origem'
+                                    : null,
+                                preenchido: _paisSelecionado != null,
+                                child: Row(
                                   children: [
-                                    Text(
-                                      'Descobrir minha outra vida',
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.3,
+                                    if (_paisSelecionado != null) ...[
+                                      Text(
+                                        _paisSelecionado!.bandeira,
+                                        style: const TextStyle(fontSize: 24),
                                       ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _paisSelecionado!.nome,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFF7C5CFC,
+                                          ).withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.public_outlined,
+                                          color: Color(0xFF7C5CFC),
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      const Text(
+                                        'Selecionar país',
+                                        style: TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                    ],
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.white38,
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_forward_rounded),
                                   ],
                                 ),
+                              ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Histórico recente
+                _HistoricoRecente(),
+
+                const SizedBox(height: 40),
+
+                // ── Botão principal ───────────────────────────────────────
+                FadeTransition(
+                  opacity: _buttonAnim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.2),
+                      end: Offset.zero,
+                    ).animate(_buttonAnim),
+                    child: ScaleTransition(
+                      scale: _buttonScale,
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _descobrir,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7C5CFC),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 8,
+                            shadowColor: const Color(
+                              0xFF7C5CFC,
+                            ).withOpacity(0.5),
+                          ),
+                          child: Consumer<UsuarioProvider>(
+                            builder: (_, prov, __) => prov.isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Descobrir minha outra vida',
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward_rounded),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 24),
+              ],
             ),
           ),
         ),
@@ -479,7 +602,7 @@ class _EntradaScreenState extends State<EntradaScreen>
   }
 }
 
-// ─── Widgets internos ───────────────────────────────────────────────────────
+// ─── Widgets internos ────────────────────────────────────────────────────────
 
 class _Label extends StatelessWidget {
   final String text;
@@ -493,7 +616,7 @@ class _Label extends StatelessWidget {
         color: Colors.white70,
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
       ),
     );
   }
@@ -503,39 +626,92 @@ class _CampoToque extends StatelessWidget {
   final VoidCallback onTap;
   final Widget child;
   final String? erro;
+  final bool preenchido;
 
-  const _CampoToque({required this.onTap, required this.child, this.erro});
+  const _CampoToque({
+    required this.onTap,
+    required this.child,
+    this.erro,
+    this.preenchido = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = erro != null
+        ? Colors.red.withOpacity(0.7)
+        : preenchido
+        ? const Color(0xFF7C5CFC).withOpacity(0.6)
+        : Colors.white.withOpacity(0.12);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.07),
+              color: preenchido
+                  ? const Color(0xFF7C5CFC).withOpacity(0.08)
+                  : Colors.white.withOpacity(0.07),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: erro != null
-                    ? Colors.red.withOpacity(0.7)
-                    : Colors.white.withOpacity(0.12),
-              ),
+              border: Border.all(color: borderColor),
             ),
             child: child,
           ),
         ),
         if (erro != null) ...[
           const SizedBox(height: 4),
-          Text(
-            erro!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+          Row(
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 13,
+                color: Colors.redAccent,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                erro!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Placeholder animado enquanto os países carregam
+class _CampoLoadingPaises extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              color: Color(0xFF7C5CFC),
+              strokeWidth: 2,
+            ),
+          ),
+          SizedBox(width: 14),
+          Text(
+            'Carregando países...',
+            style: TextStyle(color: Colors.white38, fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -546,21 +722,18 @@ class _HistoricoRecente extends StatelessWidget {
     return Consumer<UsuarioProvider>(
       builder: (_, prov, __) {
         if (prov.usuario == null) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.history, color: Colors.white38, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  'Última busca: ${prov.usuario!.paisOrigemNome}',
-                  style: const TextStyle(color: Colors.white38, fontSize: 13),
-                ),
-              ],
-            ),
-          ],
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.history, color: Colors.white38, size: 15),
+              const SizedBox(width: 6),
+              Text(
+                'Última busca: ${prov.usuario!.paisOrigemNome}',
+                style: const TextStyle(color: Colors.white38, fontSize: 13),
+              ),
+            ],
+          ),
         );
       },
     );

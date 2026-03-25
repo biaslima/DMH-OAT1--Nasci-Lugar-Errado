@@ -41,7 +41,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
       duration: const Duration(milliseconds: 700),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-
     _carregarPaisOrigem();
   }
 
@@ -78,12 +77,21 @@ class _ComparativoScreenState extends State<ComparativoScreen>
     });
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Vida salva no histórico!'),
-          backgroundColor: Color(0xFF4CAF50),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Vida salva no histórico!'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
-
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) context.go('/historico');
       });
@@ -157,6 +165,27 @@ class _ComparativoScreenState extends State<ComparativoScreen>
   String? _origemBandeiraUrl() =>
       (_paisOrigem?['flags'] as Map?)?['png'] as String?;
 
+  /// Retorna cor e ícone para comparação de expectativa de vida
+  ({Color cor, IconData icone, String label}) _expectativaComparacao() {
+    final alt = widget.vida.expectativaVida ?? 70.0;
+    final real = _expectativaReal((_paisOrigem?['region'] as String?) ?? '');
+    final diff = alt - real;
+    if (diff.abs() < 1) {
+      return (cor: Colors.white54, icone: Icons.remove, label: 'Igual');
+    }
+    return diff > 0
+        ? (
+            cor: const Color(0xFF4CAF50),
+            icone: Icons.trending_up,
+            label: '+${diff.toStringAsFixed(1)} anos',
+          )
+        : (
+            cor: Colors.redAccent,
+            icone: Icons.trending_down,
+            label: '${diff.toStringAsFixed(1)} anos',
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
     final clima = _parseClima();
@@ -178,7 +207,7 @@ class _ComparativoScreenState extends State<ComparativoScreen>
             opacity: _fadeAnim,
             child: Column(
               children: [
-                // AppBar
+                // ── AppBar ──────────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -193,23 +222,40 @@ class _ComparativoScreenState extends State<ComparativoScreen>
                         ),
                         onPressed: () => context.pop(),
                       ),
-                      const Text(
-                        'Suas duas vidas',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      const Expanded(
+                        child: Text(
+                          'Suas duas vidas',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
 
+                // Subtítulo com data
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '🎂 Nascido(a) em $dataNasc',
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.cake_outlined,
+                        size: 14,
+                        color: Colors.white38,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Nascido(a) em $dataNasc',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -224,9 +270,14 @@ class _ComparativoScreenState extends State<ComparativoScreen>
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Column(
                             children: [
-                              _FraseDestaque(texto: _fraseExpectativa()),
+                              // ── Frase destaque ──────────────────────
+                              _FraseDestaque(
+                                texto: _fraseExpectativa(),
+                                comparacao: _expectativaComparacao(),
+                              ),
                               const SizedBox(height: 20),
 
+                              // ── Colunas comparativas ─────────────────
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -277,9 +328,7 @@ class _ComparativoScreenState extends State<ComparativoScreen>
                                       ],
                                     ),
                                   ),
-
                                   const SizedBox(width: 12),
-
                                   Expanded(
                                     child: _ComparativoColuna(
                                       titulo: 'Você Alternativo',
@@ -337,65 +386,23 @@ class _ComparativoScreenState extends State<ComparativoScreen>
 
                               const SizedBox(height: 28),
 
+                              // ── Card de clima ────────────────────────
                               if (clima.isNotEmpty &&
                                   clima['descricao'] !=
                                       'Dados climáticos não disponíveis') ...[
                                 _ClimaCard(clima: clima, data: dataNasc),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 20),
                               ],
 
+                              // ── Card IA resumo ────────────────────────
                               if (clima.containsKey('ia_resumo')) ...[
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Color(0xFF7C5CFC).withOpacity(0.2),
-                                        Color(0xFF4A90D9).withOpacity(0.1),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: Color(0xFF7C5CFC).withOpacity(0.5),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Text(
-                                            '✨',
-                                            style: TextStyle(fontSize: 18),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Análise da IA',
-                                            style: TextStyle(
-                                              color: Color(0xFF9E86FF),
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        clima['ia_resumo'],
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                _IaResumoCard(
+                                  resumo: clima['ia_resumo'] as String,
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 20),
                               ],
 
+                              // ── Botões de ação ───────────────────────
                               _BotoesAcao(
                                 salvo: _salvo,
                                 salvando: _salvando,
@@ -420,9 +427,13 @@ class _ComparativoScreenState extends State<ComparativoScreen>
   }
 }
 
+// ─── Sub-widgets ──────────────────────────────────────────────────────────────
+
 class _FraseDestaque extends StatelessWidget {
   final String texto;
-  const _FraseDestaque({required this.texto});
+  final ({Color cor, IconData icone, String label}) comparacao;
+
+  const _FraseDestaque({required this.texto, required this.comparacao});
 
   @override
   Widget build(BuildContext context) {
@@ -435,14 +446,42 @@ class _FraseDestaque extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(
-        texto,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        textAlign: TextAlign.center,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              texto,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(comparacao.icone, color: comparacao.cor, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  comparacao.label,
+                  style: TextStyle(
+                    color: comparacao.cor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -494,6 +533,7 @@ class _ComparativoColuna extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Cabeçalho da coluna
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -539,6 +579,7 @@ class _ComparativoColuna extends StatelessWidget {
               ],
             ),
           ),
+          // Itens de dados
           Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -584,10 +625,22 @@ class _ClimaCard extends StatelessWidget {
   final String data;
   const _ClimaCard({required this.clima, required this.data});
 
+  String _iconeClima(String descricao) {
+    final d = descricao.toLowerCase();
+    if (d.contains('chuva') || d.contains('chuvoso')) return '🌧️';
+    if (d.contains('neve') || d.contains('nevando')) return '❄️';
+    if (d.contains('nublado') || d.contains('nuvem')) return '☁️';
+    if (d.contains('sol') || d.contains('ensolarado')) return '☀️';
+    if (d.contains('tempestade') || d.contains('trovoada')) return '⛈️';
+    return '🌤️';
+  }
+
   @override
   Widget build(BuildContext context) {
     final temp = clima['temperatura_max'];
-    final desc = clima['descricao'] ?? 'Clima não disponível';
+    final desc = clima['descricao'] as String? ?? 'Clima não disponível';
+    final icone = _iconeClima(desc);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -599,33 +652,102 @@ class _ClimaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '🌤 Clima no seu dia de nascimento',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
           Row(
             children: [
-              Text(
-                temp != null ? '${(temp as num).toStringAsFixed(0)}°C' : '—',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                ),
+              const Icon(
+                Icons.wb_sunny_outlined,
+                color: Colors.white54,
+                size: 15,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  desc,
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+              const SizedBox(width: 6),
+              const Text(
+                'Clima no seu dia de nascimento',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(icone, style: const TextStyle(fontSize: 36)),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    temp != null
+                        ? '${(temp as num).toStringAsFixed(0)}°C'
+                        : '—',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    desc,
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Card de análise da IA extraído como widget dedicado
+class _IaResumoCard extends StatelessWidget {
+  final String resumo;
+  const _IaResumoCard({required this.resumo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF7C5CFC).withOpacity(0.2),
+            const Color(0xFF4A90D9).withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF7C5CFC).withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text('✨', style: TextStyle(fontSize: 16)),
+              SizedBox(width: 8),
+              Text(
+                'Análise da IA',
+                style: TextStyle(
+                  color: Color(0xFF9E86FF),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            resumo,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -653,31 +775,34 @@ class _BotoesAcao extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           height: 52,
-          child: ElevatedButton.icon(
-            onPressed: salvo ? null : onSalvar,
-            icon: salvando
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            child: ElevatedButton.icon(
+              onPressed: salvo ? null : onSalvar,
+              icon: salvando
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(
+                      salvo ? Icons.check_circle : Icons.bookmark_add_outlined,
                     ),
-                  )
-                : Icon(
-                    salvo ? Icons.check_circle : Icons.bookmark_add_outlined,
-                  ),
-            label: Text(salvo ? 'Vida salva!' : 'Salvar esta vida'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: salvo
-                  ? Colors.green[700]
-                  : const Color(0xFF7C5CFC),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+              label: Text(salvo ? 'Vida salva!' : 'Salvar esta vida'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: salvo
+                    ? Colors.green[700]
+                    : const Color(0xFF7C5CFC),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                disabledBackgroundColor: Colors.green[700],
+                disabledForegroundColor: Colors.white,
               ),
-              disabledBackgroundColor: Colors.green[700],
-              disabledForegroundColor: Colors.white,
             ),
           ),
         ),

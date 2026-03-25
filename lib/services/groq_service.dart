@@ -54,7 +54,7 @@ class GroqService {
         {
           "role": "user",
           "content":
-              "Simulando minha vida: nasci em $paisOrigem, mas poderia ter nascido em $paisDestino. Compare clima, hobbies e qualidade de vida. Pra quem vale a pena? Vou preferir lá ou sentir saudade de casa? Responda curto.",
+              "Simulando minha vida: nasci em $paisOrigem, mas poderia ter nascido em $paisDestino. Compare clima, hobbies e qualidade de vida. Valeria mais a pena eu ter nascido lá ou aqui? Quem costuma gostar mais do país alternativo? Responda curto.",
         },
       ],
       "temperature": 0.7,
