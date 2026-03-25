@@ -16,7 +16,9 @@ class PaisItem {
     nome: (json['name'] as Map?)?['common'] as String? ?? '?',
   );
 
-  String get bandeira => code.toUpperCase().codeUnits
+  String get bandeira => code
+      .toUpperCase()
+      .codeUnits
       .map((c) => String.fromCharCode(c + 127397))
       .join();
 }
@@ -75,10 +77,8 @@ class _EntradaScreenState extends State<EntradaScreen>
   Future<void> _carregarPaises() async {
     try {
       final lista = await CountriesService().getAllCountries();
-      final paises = lista
-          .map((e) => PaisItem.fromApi(e))
-          .toList()
-        ..sort((a, b) => a.nome.compareTo(b.nome)); // alfabética
+      final paises = lista.map((e) => PaisItem.fromApi(e)).toList()
+        ..sort((a, b) => a.nome.compareTo(b.nome));
       setState(() {
         _paises = paises;
         _paisesFiltrados = List.from(paises);
@@ -121,9 +121,11 @@ class _EntradaScreenState extends State<EntradaScreen>
   void _filtrarPaises(String query) {
     setState(() {
       _paisesFiltrados = _paises
-          .where((p) =>
-      p.nome.toLowerCase().contains(query.toLowerCase()) ||
-          p.code.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (p) =>
+                p.nome.toLowerCase().contains(query.toLowerCase()) ||
+                p.code.toLowerCase().contains(query.toLowerCase()),
+          )
           .toList();
     });
   }
@@ -174,8 +176,10 @@ class _EntradaScreenState extends State<EntradaScreen>
                     decoration: InputDecoration(
                       hintText: 'Buscar país...',
                       hintStyle: TextStyle(color: Colors.white38),
-                      prefixIcon:
-                      const Icon(Icons.search, color: Colors.white38),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.white38,
+                      ),
                       filled: true,
                       fillColor: Colors.white10,
                       border: OutlineInputBorder(
@@ -187,11 +191,15 @@ class _EntradaScreenState extends State<EntradaScreen>
                     onChanged: (v) {
                       setModalState(() {
                         _paisesFiltrados = _paises
-                            .where((p) =>
-                        p.nome
-                            .toLowerCase()
-                            .contains(v.toLowerCase()) ||
-                            p.code.toLowerCase().contains(v.toLowerCase()))
+                            .where(
+                              (p) =>
+                                  p.nome.toLowerCase().contains(
+                                    v.toLowerCase(),
+                                  ) ||
+                                  p.code.toLowerCase().contains(
+                                    v.toLowerCase(),
+                                  ),
+                            )
                             .toList();
                       });
                     },
@@ -203,8 +211,7 @@ class _EntradaScreenState extends State<EntradaScreen>
                     itemCount: _paisesFiltrados.length,
                     itemBuilder: (_, i) {
                       final pais = _paisesFiltrados[i];
-                      final selecionado =
-                          _paisSelecionado?.code == pais.code;
+                      final selecionado = _paisSelecionado?.code == pais.code;
                       return ListTile(
                         leading: Text(
                           pais.bandeira,
@@ -222,8 +229,10 @@ class _EntradaScreenState extends State<EntradaScreen>
                           ),
                         ),
                         trailing: selecionado
-                            ? const Icon(Icons.check_circle,
-                            color: Color(0xFF7C5CFC))
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF7C5CFC),
+                              )
                             : null,
                         onTap: () => Navigator.pop(ctx, pais),
                       );
@@ -254,8 +263,7 @@ class _EntradaScreenState extends State<EntradaScreen>
 
     final provider = context.read<UsuarioProvider>();
     final usuario = await provider.salvarUsuario(
-      dataNascimento:
-      DateFormat('yyyy-MM-dd').format(_dataNascimento!),
+      dataNascimento: DateFormat('yyyy-MM-dd').format(_dataNascimento!),
       paisOrigemCode: _paisSelecionado!.code,
       paisOrigemNome: _paisSelecionado!.nome,
     );
@@ -293,10 +301,7 @@ class _EntradaScreenState extends State<EntradaScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Cabeçalho
-                  const Text(
-                    '🌍',
-                    style: TextStyle(fontSize: 48),
-                  ),
+                  const Text('🌍', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: 16),
                   const Text(
                     'Você nasceu no lugar errado?',
@@ -327,13 +332,17 @@ class _EntradaScreenState extends State<EntradaScreen>
                         : null,
                     child: Row(
                       children: [
-                        const Icon(Icons.cake_outlined,
-                            color: Color(0xFF7C5CFC), size: 20),
+                        const Icon(
+                          Icons.cake_outlined,
+                          color: Color(0xFF7C5CFC),
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           _dataNascimento != null
-                              ? DateFormat('dd/MM/yyyy')
-                              .format(_dataNascimento!)
+                              ? DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(_dataNascimento!)
                               : 'Selecionar data',
                           style: TextStyle(
                             color: _dataNascimento != null
@@ -343,8 +352,7 @@ class _EntradaScreenState extends State<EntradaScreen>
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.chevron_right,
-                            color: Colors.white38),
+                        const Icon(Icons.chevron_right, color: Colors.white38),
                       ],
                     ),
                   ),
@@ -356,45 +364,56 @@ class _EntradaScreenState extends State<EntradaScreen>
                   const SizedBox(height: 8),
                   _loadingPaises
                       ? const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF7C5CFC)))
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF7C5CFC),
+                          ),
+                        )
                       : _CampoToque(
-                    onTap: _abrirDropdownPaises,
-                    erro: _formSubmetido && _paisSelecionado == null
-                        ? 'Selecione seu país de origem'
-                        : null,
-                    child: Row(
-                      children: [
-                        if (_paisSelecionado != null) ...[
-                          Text(
-                            _paisSelecionado!.bandeira,
-                            style: const TextStyle(fontSize: 22),
+                          onTap: _abrirDropdownPaises,
+                          erro: _formSubmetido && _paisSelecionado == null
+                              ? 'Selecione seu país de origem'
+                              : null,
+                          child: Row(
+                            children: [
+                              if (_paisSelecionado != null) ...[
+                                Text(
+                                  _paisSelecionado!.bandeira,
+                                  style: const TextStyle(fontSize: 22),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _paisSelecionado!.nome,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ] else ...[
+                                const Icon(
+                                  Icons.public_outlined,
+                                  color: Color(0xFF7C5CFC),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Selecionar país',
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const Spacer(),
+                              ],
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.white38,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _paisSelecionado!.nome,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 16),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ] else ...[
-                          const Icon(Icons.public_outlined,
-                              color: Color(0xFF7C5CFC), size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Selecionar país',
-                            style: TextStyle(
-                                color: Colors.white38, fontSize: 16),
-                          ),
-                          const Spacer(),
-                        ],
-                        const Icon(Icons.chevron_right,
-                            color: Colors.white38),
-                      ],
-                    ),
-                  ),
+                        ),
 
                   const SizedBox(height: 16),
 
@@ -418,34 +437,33 @@ class _EntradaScreenState extends State<EntradaScreen>
                             borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 8,
-                          shadowColor:
-                          const Color(0xFF7C5CFC).withOpacity(0.5),
+                          shadowColor: const Color(0xFF7C5CFC).withOpacity(0.5),
                         ),
                         child: Consumer<UsuarioProvider>(
                           builder: (_, prov, __) => prov.isLoading
                               ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
                               : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Descobrir minha outra vida',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Descobrir minha outra vida',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward_rounded),
+                                  ],
                                 ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward_rounded),
-                            ],
-                          ),
                         ),
                       ),
                     ),
@@ -486,11 +504,7 @@ class _CampoToque extends StatelessWidget {
   final Widget child;
   final String? erro;
 
-  const _CampoToque({
-    required this.onTap,
-    required this.child,
-    this.erro,
-  });
+  const _CampoToque({required this.onTap, required this.child, this.erro});
 
   @override
   Widget build(BuildContext context) {

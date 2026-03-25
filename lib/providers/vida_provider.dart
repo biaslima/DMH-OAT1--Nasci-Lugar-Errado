@@ -6,14 +6,14 @@ import '../services/countries_service.dart';
 import '../services/weather_service.dart';
 import '../services/groq_service.dart';
 
-final _groqService = GroqService();
+final GroqService _groqService = GroqService();
 
 enum OrdemHistorico { maisRecente, maiorLongevidade }
 
 class VidaProvider with ChangeNotifier {
-  final _vidaDao = VidaDao();
-  final _countriesService = CountriesService();
-  final _weatherService = WeatherService();
+  final VidaDao _vidaDao = VidaDao();
+  final CountriesService _countriesService = CountriesService();
+  final WeatherService _weatherService = WeatherService();
 
   VidaAlternativaModel? _currentVida;
   List<VidaAlternativaModel> _listaVidas = [];
@@ -21,7 +21,7 @@ class VidaProvider with ChangeNotifier {
   String? _error;
   OrdemHistorico _ordem = OrdemHistorico.maisRecente;
 
-  //Getters
+  // Getters
   VidaAlternativaModel? get currentVida => _currentVida;
   List<VidaAlternativaModel> get listaVidas => _listaVidas;
   bool get isLoading => _isLoading;
@@ -33,66 +33,47 @@ class VidaProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Sortear
+  // ================== CORE ==================
+
   Future<void> sortearNovaVida(
     int usuarioId,
     String dataNascimento,
     String paisOrigemNome,
   ) async {
-    _isLoading = true;
-    _error = null;
-    _currentVida = null;
-    notifyListeners();
+    _setLoading(true, reset: true);
 
     try {
       final pais = await _countriesService.getRandomCountry();
       final nomeDestino =
           (pais['name'] as Map?)?['common'] as String? ?? 'Desconhecido';
 
-      final latlng = pais['latlng'] as List?;
-      Map<String, dynamic> climaData = {};
-      if (latlng != null && latlng.length >= 2) {
-        try {
-          climaData = await _weatherService.getHistoricalWeather(
-            lat: (latlng[0] as num).toDouble(),
-            lon: (latlng[1] as num).toDouble(),
-            date: dataNascimento,
-          );
-        } catch (_) {
-          climaData = {'descricao': 'Dados climáticos não disponíveis'};
-        }
-      }
-
-      try {
-        final iaResumo = await _groqService.gerarResumoComparativo(
-          paisOrigemNome,
-          nomeDestino,
-        );
-        climaData['ia_resumo'] = iaResumo;
-      } catch (_) {
-        climaData['ia_resumo'] = "Análise indisponível.";
-      }
+      final climaData = await _buscarClima(pais, dataNascimento);
+      await _enriquecerComIA(paisOrigemNome, nomeDestino, climaData);
 
       _currentVida = _montarVida(
         pais: pais,
         usuarioId: usuarioId,
         climaData: climaData,
       );
+
       await salvarVidaAtual();
     } catch (e) {
       _error = _mensagemAmigavel(e.toString());
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  // Salvar
   Future<bool> salvarVidaAtual() async {
     if (_currentVida == null) return false;
+    if (_currentVida!.id != null) return true;
+
     try {
+      _currentVida = _currentVida!.copyWith(favorita: 1);
+
       final id = await _vidaDao.insert(_currentVida!);
       _currentVida = _currentVida!.copyWith(id: id);
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -102,11 +83,11 @@ class VidaProvider with ChangeNotifier {
     }
   }
 
-  // Histórico
+  // ================== HISTÓRICO ==================
+
   Future<void> carregarHistorico(int usuarioId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _setLoading(true);
+
     try {
       _listaVidas = _ordem == OrdemHistorico.maisRecente
           ? await _vidaDao.getAll(usuarioId)
@@ -114,8 +95,7 @@ class VidaProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Erro ao carregar histórico: $e';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
@@ -145,16 +125,53 @@ class VidaProvider with ChangeNotifier {
     carregarHistorico(usuarioId);
   }
 
-  //Helpers
+  // ================== HELPERS ==================
+
+  Future<Map<String, dynamic>> _buscarClima(
+    Map<String, dynamic> pais,
+    String dataNascimento,
+  ) async {
+    final latlng = pais['latlng'] as List?;
+
+    if (latlng == null || latlng.length < 2) {
+      return {'descricao': 'Dados climáticos não disponíveis'};
+    }
+
+    try {
+      return await _weatherService.getHistoricalWeather(
+        lat: (latlng[0] as num).toDouble(),
+        lon: (latlng[1] as num).toDouble(),
+        date: dataNascimento,
+      );
+    } catch (_) {
+      return {'descricao': 'Dados climáticos não disponíveis'};
+    }
+  }
+
+  Future<void> _enriquecerComIA(
+    String origem,
+    String destino,
+    Map<String, dynamic> climaData,
+  ) async {
+    try {
+      final resumo = await _groqService.gerarResumoComparativo(origem, destino);
+      climaData['ia_resumo'] = resumo;
+    } catch (_) {
+      climaData['ia_resumo'] = 'Análise indisponível.';
+    }
+  }
+
   VidaAlternativaModel _montarVida({
     required Map<String, dynamic> pais,
     required int usuarioId,
     required Map<String, dynamic> climaData,
   }) {
     final nome = (pais['name'] as Map?)?['common'] as String? ?? 'Desconhecido';
+
     final capital = (pais['capital'] as List?)?.isNotEmpty == true
         ? pais['capital'][0] as String
         : null;
+
     final idioma = (pais['languages'] as Map?)?.values.first?.toString();
     final populacao = pais['population'] as int?;
 
@@ -268,5 +285,16 @@ class VidaProvider with ChangeNotifier {
       return 'A requisição demorou demais. Tente novamente.';
     }
     return 'Erro ao sortear país. Tente novamente.';
+  }
+
+  void _setLoading(bool value, {bool reset = false}) {
+    _isLoading = value;
+
+    if (reset) {
+      _error = null;
+      _currentVida = null;
+    }
+
+    notifyListeners();
   }
 }

@@ -30,7 +30,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
   bool _salvo = false;
   bool _salvando = false;
 
-  // Dados reais do país de origem
   Map<String, dynamic>? _paisOrigem;
   bool _loadingOrigem = true;
 
@@ -52,8 +51,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
     super.dispose();
   }
 
-  /// Busca os dados do país de origem do usuário usando o CountriesService.
-  /// O service tem cache, então se já foi chamado antes é instantâneo.
   Future<void> _carregarPaisOrigem() async {
     try {
       final todos = await CountriesService().getAllCountries();
@@ -141,7 +138,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
   }
 
   double _expectativaReal(String region) {
-    // Default life expectancy by region
     const expectativas = {
       'Africa': 63.0,
       'Americas': 75.0,
@@ -234,7 +230,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // ── Coluna REAL (dados dinâmicos da API)
                                   Expanded(
                                     child: _ComparativoColuna(
                                       titulo: 'Você Real',
@@ -285,7 +280,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
 
                                   const SizedBox(width: 12),
 
-                                  // ── Coluna ALTERNATIVA
                                   Expanded(
                                     child: _ComparativoColuna(
                                       titulo: 'Você Alternativo',
@@ -425,8 +419,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
     );
   }
 }
-
-// ─── Sub-widgets (inalterados) ────────────────────────────────────────────────
 
 class _FraseDestaque extends StatelessWidget {
   final String texto;

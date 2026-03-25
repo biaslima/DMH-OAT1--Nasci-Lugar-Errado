@@ -1,14 +1,15 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 
 class WeatherService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'https://archive-api.open-meteo.com',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
+      baseUrl: _baseUrl,
+      connectTimeout: Duration(seconds: 10),
+      receiveTimeout: Duration(seconds: 15),
     ),
   );
+
+  static const String _baseUrl = 'https://archive-api.open-meteo.com';
 
   Future<Map<String, dynamic>> getHistoricalWeather({
     required double lat,
@@ -18,36 +19,51 @@ class WeatherService {
     try {
       final response = await _dio.get(
         '/v1/archive',
-        queryParameters: {
-          'latitude': lat,
-          'longitude': lon,
-          'start_date': date,
-          'end_date': date,
-          'daily':
-              'weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum',
-          'timezone': 'auto',
-        },
+        queryParameters: _buildQuery(lat, lon, date),
       );
 
-      final daily = response.data['daily'] as Map?;
-      if (daily == null) {
-        return {'descricao': 'Dados climáticos não disponíveis'};
-      }
-
-      final codes = (daily['weathercode'] as List?) ?? [];
-      final temps = (daily['temperature_2m_max'] as List?) ?? [];
-
-      final code = codes.isNotEmpty ? codes[0] as int? : null;
-      final temp = temps.isNotEmpty ? (temps[0] as num?)?.toDouble() : null;
-
-      return {
-        'temperatura_max': temp,
-        'weathercode': code,
-        'descricao': _descricaoClima(code),
-      };
+      return _parseResponse(response.data);
     } on DioException catch (e) {
       throw Exception('Erro ao buscar clima: ${e.message}');
     }
+  }
+
+  // ================== HELPERS ==================
+
+  Map<String, dynamic> _buildQuery(double lat, double lon, String date) {
+    return {
+      'latitude': lat,
+      'longitude': lon,
+      'start_date': date,
+      'end_date': date,
+      'daily':
+          'weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum',
+      'timezone': 'auto',
+    };
+  }
+
+  Map<String, dynamic> _parseResponse(dynamic data) {
+    final daily = data['daily'] as Map?;
+
+    if (daily == null) {
+      return _fallback();
+    }
+
+    final codes = (daily['weathercode'] as List?) ?? [];
+    final temps = (daily['temperature_2m_max'] as List?) ?? [];
+
+    final code = codes.isNotEmpty ? codes.first as int? : null;
+    final temp = temps.isNotEmpty ? (temps.first as num?)?.toDouble() : null;
+
+    return {
+      'temperatura_max': temp,
+      'weathercode': code,
+      'descricao': _descricaoClima(code),
+    };
+  }
+
+  Map<String, dynamic> _fallback() {
+    return {'descricao': 'Dados climáticos não disponíveis'};
   }
 
   String _descricaoClima(int? code) {
