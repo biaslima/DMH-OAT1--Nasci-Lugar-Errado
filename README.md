@@ -6,13 +6,13 @@
 
 ## 👥 Integrantes
 
-| Nome | GitHub |
-|------|--------|
-| Anna Beatriz Lima | — |
-| Fatima Pinho | — |
-| Ian Salomão | — |
-| Rebeca Helen Amorim | — |
-| Valeria Soares | — |
+| Nome 
+|------
+| Anna Beatriz Lima 
+| Fatima Pinho 
+| Ian Salomão
+| Rebeca Helen Amorim 
+| Valeria Soares 
 
 ---
 
