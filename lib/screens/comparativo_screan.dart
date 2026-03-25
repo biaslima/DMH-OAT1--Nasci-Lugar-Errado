@@ -84,9 +84,12 @@ class _ComparativoScreenState extends State<ComparativoScreen>
         const SnackBar(
           content: Text('✅ Vida salva no histórico!'),
           backgroundColor: Color(0xFF4CAF50),
-          behavior: SnackBarBehavior.floating,
         ),
       );
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) context.go('/historico');
+      });
     }
   }
 
