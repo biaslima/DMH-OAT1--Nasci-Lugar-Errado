@@ -40,13 +40,13 @@ class _SorteioScreenState extends State<SorteioScreen>
       vsync: this,
       duration: const Duration(seconds: 3),
     );
-    _globoRotacao = Tween<double>(
-      begin: 0,
-      end: 2 * math.pi * 3, // 3 voltas completas
-    ).animate(CurvedAnimation(
-      parent: _globoController,
-      curve: Curves.easeInOut,
-    ));
+    _globoRotacao =
+        Tween<double>(
+          begin: 0,
+          end: 2 * math.pi * 3, // 3 voltas completas
+        ).animate(
+          CurvedAnimation(parent: _globoController, curve: Curves.easeInOut),
+        );
     _globoEscala = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.15), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.15, end: 0.95), weight: 40),
@@ -65,13 +65,14 @@ class _SorteioScreenState extends State<SorteioScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _revelarFade =
-        CurvedAnimation(parent: _revelarController, curve: Curves.easeOut);
-    _revelarSlide = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _revelarController, curve: Curves.easeOut));
+    _revelarFade = CurvedAnimation(
+      parent: _revelarController,
+      curve: Curves.easeOut,
+    );
+    _revelarSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _revelarController, curve: Curves.easeOut),
+        );
 
     // Inicia o sorteio automaticamente
     WidgetsBinding.instance.addPostFrameCallback((_) => _iniciarSorteio());
@@ -97,6 +98,7 @@ class _SorteioScreenState extends State<SorteioScreen>
     await provider.sortearNovaVida(
       widget.usuario.id!,
       widget.usuario.dataNascimento,
+      widget.usuario.paisOrigemNome,
     );
 
     // Garante que a animação do globo termina antes de revelar (mín. 3s)
@@ -136,12 +138,16 @@ class _SorteioScreenState extends State<SorteioScreen>
                   // AppBar simples
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              color: Colors.white70),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white70,
+                          ),
                           onPressed: () => context.pop(),
                         ),
                         const Text(
@@ -156,9 +162,7 @@ class _SorteioScreenState extends State<SorteioScreen>
                     ),
                   ),
 
-                  Expanded(
-                    child: _buildConteudo(prov),
-                  ),
+                  Expanded(child: _buildConteudo(prov)),
                 ],
               );
             },
@@ -202,11 +206,10 @@ class _SorteioScreenState extends State<SorteioScreen>
               position: _revelarSlide,
               child: _ResultadoWidget(
                 vida: prov.currentVida!,
-                onVerComparativo: () =>
-                    context.push('/comparativo', extra: {
-                      'usuario': widget.usuario,
-                      'vida': prov.currentVida,
-                    }),
+                onVerComparativo: () => context.push(
+                  '/comparativo',
+                  extra: {'usuario': widget.usuario, 'vida': prov.currentVida},
+                ),
                 onSortearNovamente: _sortearNovamente,
               ),
             ),
@@ -257,8 +260,9 @@ class _GloboAnimado extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF7C5CFC).withOpacity(
-                          globoController.isAnimating ? 0.6 : 0.3),
+                      color: const Color(
+                        0xFF7C5CFC,
+                      ).withOpacity(globoController.isAnimating ? 0.6 : 0.3),
                       blurRadius: globoController.isAnimating ? 60 : 30,
                       spreadRadius: globoController.isAnimating ? 20 : 10,
                     ),
@@ -268,10 +272,7 @@ class _GloboAnimado extends StatelessWidget {
               // Globo com rotação
               Transform.rotate(
                 angle: globoController.isAnimating ? rotacaoAnim.value : 0,
-                child: const Text(
-                  '🌍',
-                  style: TextStyle(fontSize: 110),
-                ),
+                child: const Text('🌍', style: TextStyle(fontSize: 110)),
               ),
             ],
           ),
@@ -313,7 +314,8 @@ class _TextoSuspense extends StatelessWidget {
                 value: progresso,
                 backgroundColor: Colors.white12,
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF7C5CFC)),
+                  Color(0xFF7C5CFC),
+                ),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -351,7 +353,7 @@ class _ResultadoWidget extends StatelessWidget {
                 height: 75,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) =>
-                const Text('🏳️', style: TextStyle(fontSize: 60)),
+                    const Text('🏳️', style: TextStyle(fontSize: 60)),
               ),
             )
           else
@@ -393,13 +395,13 @@ class _ResultadoWidget extends StatelessWidget {
                 backgroundColor: const Color(0xFF7C5CFC),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 6,
               ),
               child: const Text(
                 'Ver minha vida alternativa',
-                style:
-                TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -450,7 +452,8 @@ class _ErroWidget extends StatelessWidget {
               backgroundColor: const Color(0xFF7C5CFC),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],

@@ -10,12 +10,14 @@ import 'providers/vida_provider.dart';
 import 'screens/entrada_screen.dart';
 import 'screens/sorteio_screen.dart';
 import 'screens/historico_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   runApp(const NasceuLugarErradoApp());
 }
-
-// ── Rotas com ShellRoute para bottom nav ─────────────────────────────────────
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -24,10 +26,7 @@ final _router = GoRouter(
     ShellRoute(
       builder: (context, state, child) => _AppShell(child: child),
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, __) => const EntradaScreen(),
-        ),
+        GoRoute(path: '/', builder: (_, __) => const EntradaScreen()),
         GoRoute(
           path: '/historico',
           builder: (_, state) {
@@ -69,7 +68,8 @@ class NasceuLugarErradoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-            create: (_) => UsuarioProvider()..carregarUltimoUsuario()),
+          create: (_) => UsuarioProvider()..carregarUltimoUsuario(),
+        ),
         ChangeNotifierProvider(create: (_) => VidaProvider()),
       ],
       child: MaterialApp.router(
@@ -113,10 +113,7 @@ class _AppShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF12102A),
           border: Border(
-            top: BorderSide(
-              color: Colors.white.withOpacity(0.08),
-              width: 1,
-            ),
+            top: BorderSide(color: Colors.white.withOpacity(0.08), width: 1),
           ),
         ),
         child: SafeArea(
@@ -193,8 +190,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 color: corIcone,
                 fontSize: 11,
-                fontWeight:
-                selecionado ? FontWeight.bold : FontWeight.normal,
+                fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],

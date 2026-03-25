@@ -13,7 +13,7 @@ class VidaAlternativaModel {
   final String? salvoEm;
   final int favorita;
 
-  VidaAlternativaModel({
+  const VidaAlternativaModel({
     this.id,
     required this.usuarioId,
     required this.paisCode,
@@ -29,38 +29,87 @@ class VidaAlternativaModel {
     this.favorita = 0,
   });
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'pais_code': paisCode,
-    'pais_nome': paisNome,
-    'capital': capital,
-    'idioma': idioma,
-    'populacao': populacao,
-    'expectativa_vida': expectativaVida,
-    'moeda': moeda,
-    'clima_nascimento': climaNascimento,
-    'bandeira_url': bandeiraUrl,
-    'salvo_em': salvoEm,
-    'favorita': favorita,
-  };
+  static const String table = 'vidas_alternativas';
 
-  factory VidaAlternativaModel.fromMap(Map<String, dynamic> map) =>
-      VidaAlternativaModel(
-        id: map['id'],
-        usuarioId: map['usuario_id'],
-        paisCode: map['pais_code'],
-        paisNome: map['pais_nome'],
-        capital: map['capital'],
-        idioma: map['idioma'],
-        populacao: map['populacao'],
-        expectativaVida: map['expectativa_vida'],
-        moeda: map['moeda'],
-        climaNascimento: map['clima_nascimento'],
-        bandeiraUrl: map['bandeira_url'],
-        salvoEm: map['salvo_em'],
-        favorita: map['favorita'] ?? 0,
-      );
+  static const String colId = 'id';
+  static const String colUsuarioId = 'usuario_id';
+  static const String colPaisCode = 'pais_code';
+  static const String colPaisNome = 'pais_nome';
+  static const String colCapital = 'capital';
+  static const String colIdioma = 'idioma';
+  static const String colPopulacao = 'populacao';
+  static const String colExpectativaVida = 'expectativa_vida';
+  static const String colMoeda = 'moeda';
+  static const String colClimaNascimento = 'clima_nascimento';
+  static const String colBandeiraUrl = 'bandeira_url';
+  static const String colSalvoEm = 'salvo_em';
+  static const String colFavorita = 'favorita';
 
-  VidaAlternativaModel? copyWith({required int id}) {}
+  Map<String, dynamic> toMap() {
+    return {
+      colId: id,
+      colUsuarioId: usuarioId,
+      colPaisCode: paisCode,
+      colPaisNome: paisNome,
+      colCapital: capital,
+      colIdioma: idioma,
+      colPopulacao: populacao,
+      colExpectativaVida: expectativaVida,
+      colMoeda: moeda,
+      colClimaNascimento: climaNascimento,
+      colBandeiraUrl: bandeiraUrl,
+      colSalvoEm: salvoEm,
+      colFavorita: favorita,
+    };
+  }
+
+  factory VidaAlternativaModel.fromMap(Map<String, dynamic> map) {
+    return VidaAlternativaModel(
+      id: map[colId] as int?,
+      usuarioId: map[colUsuarioId] as int,
+      paisCode: map[colPaisCode] as String,
+      paisNome: map[colPaisNome] as String,
+      capital: map[colCapital] as String?,
+      idioma: map[colIdioma] as String?,
+      populacao: map[colPopulacao] as int?,
+      expectativaVida: (map[colExpectativaVida] as num?)?.toDouble(),
+      moeda: map[colMoeda] as String?,
+      climaNascimento: map[colClimaNascimento] as String?,
+      bandeiraUrl: map[colBandeiraUrl] as String?,
+      salvoEm: map[colSalvoEm] as String?,
+      favorita: map[colFavorita] as int? ?? 0,
+    );
+  }
+
+  VidaAlternativaModel copyWith({
+    int? id,
+    int? usuarioId,
+    String? paisCode,
+    String? paisNome,
+    String? capital,
+    String? idioma,
+    int? populacao,
+    double? expectativaVida,
+    String? moeda,
+    String? climaNascimento,
+    String? bandeiraUrl,
+    String? salvoEm,
+    int? favorita,
+  }) {
+    return VidaAlternativaModel(
+      id: id ?? this.id,
+      usuarioId: usuarioId ?? this.usuarioId,
+      paisCode: paisCode ?? this.paisCode,
+      paisNome: paisNome ?? this.paisNome,
+      capital: capital ?? this.capital,
+      idioma: idioma ?? this.idioma,
+      populacao: populacao ?? this.populacao,
+      expectativaVida: expectativaVida ?? this.expectativaVida,
+      moeda: moeda ?? this.moeda,
+      climaNascimento: climaNascimento ?? this.climaNascimento,
+      bandeiraUrl: bandeiraUrl ?? this.bandeiraUrl,
+      salvoEm: salvoEm ?? this.salvoEm,
+      favorita: favorita ?? this.favorita,
+    );
+  }
 }

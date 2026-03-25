@@ -5,8 +5,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:nasci_lugar_errado/data/models/vida_alternativa_model.dart';
 import 'package:nasci_lugar_errado/widgets/bandeira_widget.dart';
 
-/// Captura o widget do comparativo e dispara o share nativo.
-/// Chame [ShareCardService.compartilhar] passando o contexto e a vida.
 class ShareCardService {
   static Future<void> compartilhar({
     required BuildContext context,
@@ -16,33 +14,36 @@ class ShareCardService {
   }) async {
     final controller = ScreenshotController();
 
-    // Renderiza o card fora da árvore principal
-    final Uint8List? bytes = await controller.captureFromLongWidget(
+    final bytes = await controller.captureFromLongWidget(
       _ShareCardWidget(
         vida: vida,
         paisOrigemNome: paisOrigemNome,
         paisOrigemCode: paisOrigemCode,
       ),
-      pixelRatio: 3.0,
+      pixelRatio: 3,
     );
 
     if (bytes == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao gerar imagem.')),
-        );
-      }
+      _showError(context, 'Erro ao gerar imagem.');
       return;
     }
 
     await Share.shareXFiles(
       [XFile.fromData(bytes, mimeType: 'image/png', name: 'minha_vida.png')],
-      text: '🌍 E se eu tivesse nascido em ${vida.paisNome}? #NasceuLugarErrado',
+      text:
+          '🌍 E se eu tivesse nascido em ${vida.paisNome}? #NasceuLugarErrado',
     );
+  }
+
+  static void _showError(BuildContext context, String message) {
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
-/// Card visual gerado para compartilhamento.
 class _ShareCardWidget extends StatelessWidget {
   final VidaAlternativaModel vida;
   final String paisOrigemNome;
@@ -69,82 +70,107 @@ class _ShareCardWidget extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Text(
-            '🌍 Você Nasceu no Lugar Errado?',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-
-          // Comparativo lado a lado
-          Row(
-            children: [
-              Expanded(child: _ColunaPais(
-                titulo: 'Sua Vida Real',
-                paisNome: paisOrigemNome,
-                paisCode: paisOrigemCode,
-                bandeiraUrl: null,
-                expectativaVida: null,
-                capital: null,
-              )),
-              Column(
-                children: [
-                  Container(
-                    height: 60,
-                    width: 1,
-                    color: Colors.white.withOpacity(0.3),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text('⚡', style: TextStyle(fontSize: 16)),
-                  ),
-                  Container(
-                    height: 60,
-                    width: 1,
-                    color: Colors.white.withOpacity(0.3),
-                  ),
-                ],
-              ),
-              Expanded(child: _ColunaPais(
-                titulo: 'Vida Alternativa',
-                paisNome: vida.paisNome,
-                paisCode: vida.paisCode,
-                bandeiraUrl: vida.bandeiraUrl,
-                expectativaVida: vida.expectativaVida,
-                capital: vida.capital,
-              )),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // Rodapé
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Descubra a sua outra vida 🚀',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+        children: const [
+          _Header(),
+          SizedBox(height: 20),
+          _Comparativo(),
+          SizedBox(height: 20),
+          _Footer(),
         ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      '🌍 Você Nasceu no Lugar Errado?',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        fontSize: 16,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+}
+
+class _Comparativo extends StatelessWidget {
+  const _Comparativo();
+
+  @override
+  Widget build(BuildContext context) {
+    final parent = context.findAncestorWidgetOfExactType<_ShareCardWidget>()!;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _ColunaPais(
+            titulo: 'Sua Vida Real',
+            paisNome: parent.paisOrigemNome,
+            paisCode: parent.paisOrigemCode,
+          ),
+        ),
+        const _Divisor(),
+        Expanded(
+          child: _ColunaPais(
+            titulo: 'Vida Alternativa',
+            paisNome: parent.vida.paisNome,
+            paisCode: parent.vida.paisCode,
+            bandeiraUrl: parent.vida.bandeiraUrl,
+            expectativaVida: parent.vida.expectativaVida,
+            capital: parent.vida.capital,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Divisor extends StatelessWidget {
+  const _Divisor();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(height: 60, width: 1, color: Colors.white.withOpacity(0.3)),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: const Text('⚡', style: TextStyle(fontSize: 16)),
+        ),
+        Container(height: 60, width: 1, color: Colors.white.withOpacity(0.3)),
+      ],
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        'Descubra a sua outra vida 🚀',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -162,9 +188,9 @@ class _ColunaPais extends StatelessWidget {
     required this.titulo,
     required this.paisNome,
     required this.paisCode,
-    required this.bandeiraUrl,
-    required this.expectativaVida,
-    required this.capital,
+    this.bandeiraUrl,
+    this.expectativaVida,
+    this.capital,
   });
 
   @override

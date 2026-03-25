@@ -4,13 +4,16 @@ import '../data/dao/vida_dao.dart';
 import '../data/models/vida_alternativa_model.dart';
 import '../services/countries_service.dart';
 import '../services/weather_service.dart';
+import '../services/groq_service.dart';
+
+final GroqService _groqService = GroqService();
 
 enum OrdemHistorico { maisRecente, maiorLongevidade }
 
 class VidaProvider with ChangeNotifier {
-  final _vidaDao = VidaDao();
-  final _countriesService = CountriesService();
-  final _weatherService = WeatherService();
+  final VidaDao _vidaDao = VidaDao();
+  final CountriesService _countriesService = CountriesService();
+  final WeatherService _weatherService = WeatherService();
 
   VidaAlternativaModel? _currentVida;
   List<VidaAlternativaModel> _listaVidas = [];
@@ -18,7 +21,7 @@ class VidaProvider with ChangeNotifier {
   String? _error;
   OrdemHistorico _ordem = OrdemHistorico.maisRecente;
 
-  // ── Getters ──────────────────────────────────────────────────────────────
+  // Getters
   VidaAlternativaModel? get currentVida => _currentVida;
   List<VidaAlternativaModel> get listaVidas => _listaVidas;
   bool get isLoading => _isLoading;
@@ -30,56 +33,47 @@ class VidaProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Sortear ───────────────────────────────────────────────────────────────
-  /// Sorteia um país aleatório, busca o clima histórico e monta um
-  /// [VidaAlternativaModel] sem persistir ainda (o usuário decide depois).
-  Future<void> sortearNovaVida(int usuarioId, String dataNascimento) async {
-    _isLoading = true;
-    _error = null;
-    _currentVida = null;
-    notifyListeners();
+  // ================== CORE ==================
+
+  Future<void> sortearNovaVida(
+    int usuarioId,
+    String dataNascimento,
+    String paisOrigemNome,
+  ) async {
+    _setLoading(true, reset: true);
 
     try {
-      // 1. País aleatório via REST Countries
       final pais = await _countriesService.getRandomCountry();
+      final nomeDestino =
+          (pais['name'] as Map?)?['common'] as String? ?? 'Desconhecido';
 
-      // 2. Extrai lat/lon para buscar o clima
-      final latlng = pais['latlng'] as List?;
-      Map<String, dynamic> climaData = {};
-      if (latlng != null && latlng.length >= 2) {
-        try {
-          climaData = await _weatherService.getHistoricalWeather(
-            lat: (latlng[0] as num).toDouble(),
-            lon: (latlng[1] as num).toDouble(),
-            date: dataNascimento,
-          );
-        } catch (_) {
-          // Fallback silencioso — nem toda data/localização tem dados
-          climaData = {'descricao': 'Dados climáticos não disponíveis'};
-        }
-      }
+      final climaData = await _buscarClima(pais, dataNascimento);
+      await _enriquecerComIA(paisOrigemNome, nomeDestino, climaData);
 
-      // 3. Monta o modelo (ainda não salvo no banco)
       _currentVida = _montarVida(
         pais: pais,
         usuarioId: usuarioId,
         climaData: climaData,
       );
+
+      await salvarVidaAtual();
     } catch (e) {
       _error = _mensagemAmigavel(e.toString());
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  // ── Salvar ────────────────────────────────────────────────────────────────
-  /// Persiste a vida atual no SQLite e atualiza o id gerado.
   Future<bool> salvarVidaAtual() async {
     if (_currentVida == null) return false;
+    if (_currentVida!.id != null) return true;
+
     try {
+      _currentVida = _currentVida!.copyWith(favorita: 1);
+
       final id = await _vidaDao.insert(_currentVida!);
       _currentVida = _currentVida!.copyWith(id: id);
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -89,11 +83,11 @@ class VidaProvider with ChangeNotifier {
     }
   }
 
-  // ── Histórico ─────────────────────────────────────────────────────────────
+  // ================== HISTÓRICO ==================
+
   Future<void> carregarHistorico(int usuarioId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _setLoading(true);
+
     try {
       _listaVidas = _ordem == OrdemHistorico.maisRecente
           ? await _vidaDao.getAll(usuarioId)
@@ -101,8 +95,7 @@ class VidaProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Erro ao carregar histórico: $e';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
@@ -132,27 +125,61 @@ class VidaProvider with ChangeNotifier {
     carregarHistorico(usuarioId);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ================== HELPERS ==================
+
+  Future<Map<String, dynamic>> _buscarClima(
+    Map<String, dynamic> pais,
+    String dataNascimento,
+  ) async {
+    final latlng = pais['latlng'] as List?;
+
+    if (latlng == null || latlng.length < 2) {
+      return {'descricao': 'Dados climáticos não disponíveis'};
+    }
+
+    try {
+      return await _weatherService.getHistoricalWeather(
+        lat: (latlng[0] as num).toDouble(),
+        lon: (latlng[1] as num).toDouble(),
+        date: dataNascimento,
+      );
+    } catch (_) {
+      return {'descricao': 'Dados climáticos não disponíveis'};
+    }
+  }
+
+  Future<void> _enriquecerComIA(
+    String origem,
+    String destino,
+    Map<String, dynamic> climaData,
+  ) async {
+    try {
+      final resumo = await _groqService.gerarResumoComparativo(origem, destino);
+      climaData['ia_resumo'] = resumo;
+    } catch (_) {
+      climaData['ia_resumo'] = 'Análise indisponível.';
+    }
+  }
+
   VidaAlternativaModel _montarVida({
     required Map<String, dynamic> pais,
     required int usuarioId,
     required Map<String, dynamic> climaData,
   }) {
-    final nome =
-        (pais['name'] as Map?)?['common'] as String? ?? 'Desconhecido';
+    final nome = (pais['name'] as Map?)?['common'] as String? ?? 'Desconhecido';
+
     final capital = (pais['capital'] as List?)?.isNotEmpty == true
         ? pais['capital'][0] as String
         : null;
-    final idioma =
-    (pais['languages'] as Map?)?.values.first?.toString();
+
+    final idioma = (pais['languages'] as Map?)?.values.first?.toString();
     final populacao = pais['population'] as int?;
 
     String? moeda;
     final moedaMap = pais['currencies'] as Map?;
     if (moedaMap != null && moedaMap.isNotEmpty) {
       final key = moedaMap.keys.first as String;
-      final nomeMoeda =
-          (moedaMap[key] as Map?)?['name'] as String? ?? key;
+      final nomeMoeda = (moedaMap[key] as Map?)?['name'] as String? ?? key;
       moeda = '$nomeMoeda ($key)';
     }
 
@@ -163,22 +190,90 @@ class VidaProvider with ChangeNotifier {
       capital: capital,
       idioma: idioma,
       populacao: populacao,
-      expectativaVida:
-      _expectativaPorRegiao(pais['region'] as String? ?? ''),
+      expectativaVida: _expectativaReal(
+        pais['cca2'] as String? ?? '',
+        pais['region'] as String? ?? '',
+      ),
       moeda: moeda,
       climaNascimento: jsonEncode(climaData),
       bandeiraUrl: (pais['flags'] as Map?)?['png'] as String?,
     );
   }
 
-  double _expectativaPorRegiao(String regiao) {
+  double _expectativaReal(String paisCode, String regiao) {
+    final mapExpectativa = {
+      'BR': 75.3, // Brasil
+      'US': 77.2, // Estados Unidos
+      'JP': 84.6, // Japão
+      'CN': 78.2, // China
+      'NG': 55.0, // Nigéria
+      'CA': 82.6, // Canadá
+      'AU': 83.4, // Austrália
+      'DE': 81.0, // Alemanha
+      'FR': 82.3, // França
+      'IN': 67.2, // Índia
+      'AR': 76.6, // Argentina
+      'PT': 81.5, // Portugal
+      'IT': 82.8, // Itália
+      'ZA': 64.1, // África do Sul
+      'RU': 71.3, // Rússia
+      'MX': 75.0, // México
+      'ES': 83.2, // Espanha
+      'KR': 83.5, // Coreia do Sul
+      'UK': 81.2, // Reino Unido
+      'SE': 83.1, // Suécia
+      'NO': 83.2, // Noruega
+      'FI': 81.9, // Finlândia
+      'DK': 81.6, // Dinamarca
+      'NL': 81.7, // Holanda
+      'BE': 81.9, // Bélgica
+      'CH': 83.8, // Suíça
+      'AT': 81.5, // Áustria
+      'IE': 82.4, // Irlanda
+      'NZ': 82.8, // Nova Zelândia
+      'SG': 84.3, // Singapura
+      'TH': 78.7, // Tailândia
+      'MY': 75.6, // Malásia
+      'ID': 71.7, // Indonésia
+      'PH': 71.4, // Filipinas
+      'EG': 70.2, // Egito
+      'TR': 77.7, // Turquia
+      'SA': 75.1, // Arábia Saudita
+      'AE': 78.1, // Emirados Árabes
+      'IL': 83.0, // Israel
+      'CL': 81.0, // Chile
+      'CO': 77.3, // Colômbia
+      'PE': 76.5, // Peru
+      'VE': 72.1, // Venezuela
+      'PL': 77.5, // Polônia
+      'CZ': 79.1, // República Tcheca
+      'HU': 76.2, // Hungria
+      'GR': 81.1, // Grécia
+      'UA': 71.0, // Ucrânia
+      'PK': 66.1, // Paquistão
+      'BD': 72.4, // Bangladesh
+      'KE': 66.7, // Quênia
+      'ET': 66.6, // Etiópia
+      'GH': 64.5, // Gana
+    };
+
+    if (mapExpectativa.containsKey(paisCode.toUpperCase())) {
+      return mapExpectativa[paisCode.toUpperCase()]!;
+    }
+
     switch (regiao) {
-      case 'Europe':   return 78.5;
-      case 'Americas': return 74.2;
-      case 'Asia':     return 73.8;
-      case 'Oceania':  return 77.1;
-      case 'Africa':   return 62.7;
-      default:         return 70.0;
+      case 'Europe':
+        return 78.5;
+      case 'Americas':
+        return 74.2;
+      case 'Asia':
+        return 73.8;
+      case 'Oceania':
+        return 77.1;
+      case 'Africa':
+        return 62.7;
+      default:
+        return 70.0;
     }
   }
 
@@ -190,5 +285,16 @@ class VidaProvider with ChangeNotifier {
       return 'A requisição demorou demais. Tente novamente.';
     }
     return 'Erro ao sortear país. Tente novamente.';
+  }
+
+  void _setLoading(bool value, {bool reset = false}) {
+    _isLoading = value;
+
+    if (reset) {
+      _error = null;
+      _currentVida = null;
+    }
+
+    notifyListeners();
   }
 }
