@@ -62,5 +62,35 @@ class VidaAlternativaModel {
         favorita: map['favorita'] ?? 0,
       );
 
-  VidaAlternativaModel? copyWith({required int id}) {}
+  VidaAlternativaModel copyWith({
+    int? id,
+    int? usuarioId,
+    String? paisCode,
+    String? paisNome,
+    String? capital,
+    String? idioma,
+    int? populacao,
+    double? expectativaVida,
+    String? moeda,
+    String? climaNascimento,
+    String? bandeiraUrl,
+    String? salvoEm,
+    int? favorita,
+  }) {
+    return VidaAlternativaModel(
+      id: id ?? this.id,
+      usuarioId: usuarioId ?? this.usuarioId,
+      paisCode: paisCode ?? this.paisCode,
+      paisNome: paisNome ?? this.paisNome,
+      capital: capital ?? this.capital,
+      idioma: idioma ?? this.idioma,
+      populacao: populacao ?? this.populacao,
+      expectativaVida: expectativaVida ?? this.expectativaVida,
+      moeda: moeda ?? this.moeda,
+      climaNascimento: climaNascimento ?? this.climaNascimento,
+      bandeiraUrl: bandeiraUrl ?? this.bandeiraUrl,
+      salvoEm: salvoEm ?? this.salvoEm,
+      favorita: favorita ?? this.favorita,
+    );
+  }
 }

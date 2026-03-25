@@ -59,7 +59,7 @@ class _ComparativoScreenState extends State<ComparativoScreen>
       final todos = await CountriesService().getAllCountries();
       final code = widget.usuario.paisOrigemCode.toUpperCase();
       final encontrado = todos.firstWhere(
-            (p) => (p['cca2'] as String?)?.toUpperCase() == code,
+        (p) => (p['cca2'] as String?)?.toUpperCase() == code,
         orElse: () => {},
       );
       setState(() {
@@ -103,25 +103,15 @@ class _ComparativoScreenState extends State<ComparativoScreen>
 
   String _fraseExpectativa() {
     final vidaAlt = widget.vida.expectativaVida ?? 70.0;
-    final vidaReal = _expectativaPorRegiao(
-        (_paisOrigem?['region'] as String?) ?? '');
+    final vidaReal = _expectativaReal(
+      (_paisOrigem?['region'] as String?) ?? '',
+    );
     final diff = vidaAlt - vidaReal;
     if (diff.abs() < 1) return 'Expectativa de vida parecida com a sua!';
     final anos = diff.abs().toStringAsFixed(1);
     return diff > 0
         ? 'Você viveria $anos anos a mais! 🎉'
         : 'Você viveria $anos anos a menos.';
-  }
-
-  double _expectativaPorRegiao(String regiao) {
-    switch (regiao) {
-      case 'Europe':   return 78.5;
-      case 'Americas': return 74.2;
-      case 'Asia':     return 73.8;
-      case 'Oceania':  return 77.1;
-      case 'Africa':   return 62.7;
-      default:         return 70.0;
-    }
   }
 
   Map<String, dynamic> _parseClima() {
@@ -132,7 +122,6 @@ class _ComparativoScreenState extends State<ComparativoScreen>
     }
   }
 
-  // Extrai campos do país de origem do Map da API
   String _origemCapital() {
     final cap = _paisOrigem?['capital'] as List?;
     return cap?.isNotEmpty == true ? cap!.first as String : '—';
@@ -151,11 +140,23 @@ class _ComparativoScreenState extends State<ComparativoScreen>
     return '$nome ($key)';
   }
 
+  double _expectativaReal(String region) {
+    // Default life expectancy by region
+    const expectativas = {
+      'Africa': 63.0,
+      'Americas': 75.0,
+      'Asia': 72.0,
+      'Europe': 78.0,
+      'Oceania': 76.0,
+    };
+    return expectativas[region] ?? 70.0;
+  }
+
   String _origemPopulacao() =>
       _formatarPopulacao(_paisOrigem?['population'] as int?);
 
   double _origemExpectativa() =>
-      _expectativaPorRegiao(_paisOrigem?['region'] as String? ?? '');
+      _expectativaReal(_paisOrigem?['region'] as String? ?? '');
 
   String? _origemBandeiraUrl() =>
       (_paisOrigem?['flags'] as Map?)?['png'] as String?;
@@ -163,9 +164,9 @@ class _ComparativoScreenState extends State<ComparativoScreen>
   @override
   Widget build(BuildContext context) {
     final clima = _parseClima();
-    final dataNasc = DateFormat('dd/MM/yyyy').format(
-      DateTime.parse(widget.usuario.dataNascimento),
-    );
+    final dataNasc = DateFormat(
+      'dd/MM/yyyy',
+    ).format(DateTime.parse(widget.usuario.dataNascimento));
 
     return Scaffold(
       body: Container(
@@ -183,12 +184,17 @@ class _ComparativoScreenState extends State<ComparativoScreen>
               children: [
                 // AppBar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.white70),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white70,
+                        ),
                         onPressed: () => context.pop(),
                       ),
                       const Text(
@@ -214,101 +220,202 @@ class _ComparativoScreenState extends State<ComparativoScreen>
                 Expanded(
                   child: _loadingOrigem
                       ? const Center(
-                    child: CircularProgressIndicator(
-                        color: Color(0xFF7C5CFC)),
-                  )
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF7C5CFC),
+                          ),
+                        )
                       : SingleChildScrollView(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        _FraseDestaque(texto: _fraseExpectativa()),
-                        const SizedBox(height: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            children: [
+                              _FraseDestaque(texto: _fraseExpectativa()),
+                              const SizedBox(height: 20),
 
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ── Coluna REAL (dados dinâmicos da API)
-                            Expanded(
-                              child: _ComparativoColuna(
-                                titulo: 'Você Real',
-                                emoji: '🧑',
-                                cor: const Color(0xFF4A90D9),
-                                bandeiraUrl: _origemBandeiraUrl(),
-                                paisCode: widget.usuario.paisOrigemCode,
-                                items: [
-                                  _ItemInfo(icone: '🌍', label: 'País',
-                                      valor: widget.usuario.paisOrigemNome),
-                                  _ItemInfo(icone: '🗓️', label: 'Nascimento',
-                                      valor: dataNasc),
-                                  _ItemInfo(icone: '👥', label: 'População',
-                                      valor: _origemPopulacao()),
-                                  _ItemInfo(icone: '📍', label: 'Capital',
-                                      valor: _origemCapital()),
-                                  _ItemInfo(icone: '🗣️', label: 'Idioma',
-                                      valor: _origemIdioma()),
-                                  _ItemInfo(icone: '💰', label: 'Moeda',
-                                      valor: _origemMoeda()),
-                                  _ItemInfo(icone: '❤️', label: 'Expectativa',
-                                      valor: '${_origemExpectativa().toStringAsFixed(1)} anos'),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // ── Coluna REAL (dados dinâmicos da API)
+                                  Expanded(
+                                    child: _ComparativoColuna(
+                                      titulo: 'Você Real',
+                                      emoji: '🧑',
+                                      cor: const Color(0xFF4A90D9),
+                                      bandeiraUrl: _origemBandeiraUrl(),
+                                      paisCode: widget.usuario.paisOrigemCode,
+                                      items: [
+                                        _ItemInfo(
+                                          icone: '🌍',
+                                          label: 'País',
+                                          valor: widget.usuario.paisOrigemNome,
+                                        ),
+                                        _ItemInfo(
+                                          icone: '🗓️',
+                                          label: 'Nascimento',
+                                          valor: dataNasc,
+                                        ),
+                                        _ItemInfo(
+                                          icone: '👥',
+                                          label: 'População',
+                                          valor: _origemPopulacao(),
+                                        ),
+                                        _ItemInfo(
+                                          icone: '📍',
+                                          label: 'Capital',
+                                          valor: _origemCapital(),
+                                        ),
+                                        _ItemInfo(
+                                          icone: '🗣️',
+                                          label: 'Idioma',
+                                          valor: _origemIdioma(),
+                                        ),
+                                        _ItemInfo(
+                                          icone: '💰',
+                                          label: 'Moeda',
+                                          valor: _origemMoeda(),
+                                        ),
+                                        _ItemInfo(
+                                          icone: '❤️',
+                                          label: 'Expectativa',
+                                          valor:
+                                              '${_origemExpectativa().toStringAsFixed(1)} anos',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 12),
+
+                                  // ── Coluna ALTERNATIVA
+                                  Expanded(
+                                    child: _ComparativoColuna(
+                                      titulo: 'Você Alternativo',
+                                      emoji: '✨',
+                                      cor: const Color(0xFF7C5CFC),
+                                      bandeiraUrl: widget.vida.bandeiraUrl,
+                                      paisCode: widget.vida.paisCode,
+                                      items: [
+                                        _ItemInfo(
+                                          icone: '🌍',
+                                          label: 'País',
+                                          valor: widget.vida.paisNome,
+                                        ),
+                                        _ItemInfo(
+                                          icone: '🗓️',
+                                          label: 'Nascimento',
+                                          valor: dataNasc,
+                                        ),
+                                        _ItemInfo(
+                                          icone: '👥',
+                                          label: 'População',
+                                          valor: _formatarPopulacao(
+                                            widget.vida.populacao,
+                                          ),
+                                        ),
+                                        _ItemInfo(
+                                          icone: '📍',
+                                          label: 'Capital',
+                                          valor: widget.vida.capital ?? '—',
+                                        ),
+                                        _ItemInfo(
+                                          icone: '🗣️',
+                                          label: 'Idioma',
+                                          valor: widget.vida.idioma ?? '—',
+                                        ),
+                                        _ItemInfo(
+                                          icone: '💰',
+                                          label: 'Moeda',
+                                          valor: widget.vida.moeda ?? '—',
+                                        ),
+                                        _ItemInfo(
+                                          icone: '❤️',
+                                          label: 'Expectativa',
+                                          valor:
+                                              widget.vida.expectativaVida !=
+                                                  null
+                                              ? '${widget.vida.expectativaVida!.toStringAsFixed(1)} anos'
+                                              : '—',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
 
-                            const SizedBox(width: 12),
+                              const SizedBox(height: 28),
 
-                            // ── Coluna ALTERNATIVA
-                            Expanded(
-                              child: _ComparativoColuna(
-                                titulo: 'Você Alternativo',
-                                emoji: '✨',
-                                cor: const Color(0xFF7C5CFC),
-                                bandeiraUrl: widget.vida.bandeiraUrl,
-                                paisCode: widget.vida.paisCode,
-                                items: [
-                                  _ItemInfo(icone: '🌍', label: 'País',
-                                      valor: widget.vida.paisNome),
-                                  _ItemInfo(icone: '🗓️', label: 'Nascimento',
-                                      valor: dataNasc),
-                                  _ItemInfo(icone: '👥', label: 'População',
-                                      valor: _formatarPopulacao(widget.vida.populacao)),
-                                  _ItemInfo(icone: '📍', label: 'Capital',
-                                      valor: widget.vida.capital ?? '—'),
-                                  _ItemInfo(icone: '🗣️', label: 'Idioma',
-                                      valor: widget.vida.idioma ?? '—'),
-                                  _ItemInfo(icone: '💰', label: 'Moeda',
-                                      valor: widget.vida.moeda ?? '—'),
-                                  _ItemInfo(icone: '❤️', label: 'Expectativa',
-                                      valor: widget.vida.expectativaVida != null
-                                          ? '${widget.vida.expectativaVida!.toStringAsFixed(1)} anos'
-                                          : '—'),
-                                ],
+                              if (clima.isNotEmpty &&
+                                  clima['descricao'] !=
+                                      'Dados climáticos não disponíveis') ...[
+                                _ClimaCard(clima: clima, data: dataNasc),
+                                const SizedBox(height: 24),
+                              ],
+
+                              if (clima.containsKey('ia_resumo')) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF7C5CFC).withOpacity(0.2),
+                                        Color(0xFF4A90D9).withOpacity(0.1),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: Color(0xFF7C5CFC).withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            '✨',
+                                            style: TextStyle(fontSize: 18),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Análise da IA',
+                                            style: TextStyle(
+                                              color: Color(0xFF9E86FF),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        clima['ia_resumo'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+
+                              _BotoesAcao(
+                                salvo: _salvo,
+                                salvando: _salvando,
+                                onSalvar: _salvar,
+                                onSortearNovamente: () => context.go(
+                                  '/sorteio',
+                                  extra: widget.usuario,
+                                ),
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(height: 24),
+                            ],
+                          ),
                         ),
-
-                        const SizedBox(height: 28),
-
-                        if (clima.isNotEmpty &&
-                            clima['descricao'] !=
-                                'Dados climáticos não disponíveis') ...[
-                          _ClimaCard(clima: clima, data: dataNasc),
-                          const SizedBox(height: 24),
-                        ],
-
-                        _BotoesAcao(
-                          salvo: _salvo,
-                          salvando: _salvando,
-                          onSalvar: _salvar,
-                          onSortearNovamente: () =>
-                              context.go('/sorteio', extra: widget.usuario),
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -353,8 +460,11 @@ class _ItemInfo {
   final String icone;
   final String label;
   final String valor;
-  const _ItemInfo(
-      {required this.icone, required this.label, required this.valor});
+  const _ItemInfo({
+    required this.icone,
+    required this.label,
+    required this.valor,
+  });
 }
 
 class _ComparativoColuna extends StatelessWidget {
@@ -375,7 +485,9 @@ class _ComparativoColuna extends StatelessWidget {
   });
 
   String _bandeiraPorCodigo(String code) {
-    return code.toUpperCase().codeUnits
+    return code
+        .toUpperCase()
+        .codeUnits
         .map((c) => String.fromCharCode(c + 127397))
         .join();
   }
@@ -392,23 +504,26 @@ class _ComparativoColuna extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
             decoration: BoxDecoration(
               color: cor.withOpacity(0.15),
-              borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
             ),
             child: Column(
               children: [
                 Text(emoji, style: const TextStyle(fontSize: 28)),
                 const SizedBox(height: 4),
-                Text(titulo,
-                    style: TextStyle(
-                        color: cor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center),
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    color: cor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 6),
                 if (bandeiraUrl != null)
                   ClipRRect(
@@ -419,13 +534,16 @@ class _ComparativoColuna extends StatelessWidget {
                       height: 32,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Text(
-                          _bandeiraPorCodigo(paisCode),
-                          style: const TextStyle(fontSize: 28)),
+                        _bandeiraPorCodigo(paisCode),
+                        style: const TextStyle(fontSize: 28),
+                      ),
                     ),
                   )
                 else
-                  Text(_bandeiraPorCodigo(paisCode),
-                      style: const TextStyle(fontSize: 32)),
+                  Text(
+                    _bandeiraPorCodigo(paisCode),
+                    style: const TextStyle(fontSize: 32),
+                  ),
               ],
             ),
           ),
@@ -438,17 +556,24 @@ class _ComparativoColuna extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${item.icone} ${item.label}',
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 10)),
+                      Text(
+                        '${item.icone} ${item.label}',
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(item.valor,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        item.valor,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const Divider(color: Colors.white10, height: 10),
                     ],
                   ),
@@ -482,26 +607,31 @@ class _ClimaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🌤 Clima no seu dia de nascimento',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            '🌤 Clima no seu dia de nascimento',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
               Text(
                 temp != null ? '${(temp as num).toStringAsFixed(0)}°C' : '—',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w800),
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(desc,
-                    style: const TextStyle(
-                        color: Colors.white54, fontSize: 14)),
+                child: Text(
+                  desc,
+                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+                ),
               ),
             ],
           ),
@@ -535,20 +665,25 @@ class _BotoesAcao extends StatelessWidget {
             onPressed: salvo ? null : onSalvar,
             icon: salvando
                 ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2),
-            )
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : Icon(
-                salvo ? Icons.check_circle : Icons.bookmark_add_outlined),
+                    salvo ? Icons.check_circle : Icons.bookmark_add_outlined,
+                  ),
             label: Text(salvo ? 'Vida salva!' : 'Salvar esta vida'),
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-              salvo ? Colors.green[700] : const Color(0xFF7C5CFC),
+              backgroundColor: salvo
+                  ? Colors.green[700]
+                  : const Color(0xFF7C5CFC),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
               disabledBackgroundColor: Colors.green[700],
               disabledForegroundColor: Colors.white,
             ),
@@ -566,7 +701,8 @@ class _BotoesAcao extends StatelessWidget {
               foregroundColor: Colors.white70,
               side: const BorderSide(color: Colors.white24),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ),
